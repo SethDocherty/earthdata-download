@@ -3,15 +3,33 @@
     "configurations": [
         {
             "name": "EarthData Download - GEDI02_B stats",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "earthdata_download.src.cli",
             "args": [
                 "--shortname", "GEDI02_B",
                 "--version", "002",
-                "--log-file", "./data/wtf-mate.log",
+                "--log-file", "./data/gedi02b.log",
                 "--log-level", "DEBUG",
-                // "--payload-file", "C:\\Users\\seth\\github\\personal\\_python\\cmr-stac\\earthdata-download\\cache\\GEDI02_B_granules.pickle"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "stopOnEntry": false
+        },
+        {
+            "name": "EarthData Download - GEDI01_B stats",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "earthdata_download.src.cli",
+            "args": [
+                "--shortname", "GEDI01_B",
+                "--version", "002",
+                "--log-file", "./data/gedi01b.log",
+                "--log-level", "DEBUG",
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
@@ -23,7 +41,7 @@
         },
         {
             "name": "EarthData Download - General Run",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "earthdata_download.src.cli",
             "args": [],
