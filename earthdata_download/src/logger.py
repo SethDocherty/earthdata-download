@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 
 class EarthDataLogger:

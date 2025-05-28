@@ -5,11 +5,10 @@ Provides a CLI for downloading data from NASA EarthData.
 """
 
 import argparse
-import json
 import sys
 import textwrap
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict
 
 from earthdata_download.src.auth import (
     EarthDataAuth,
@@ -31,19 +30,19 @@ def create_parser() -> argparse.ArgumentParser:
             Example usage:
               # Download data from a collection
               python -m earthdata_download.src.cli --shortname GEDI02_B --version 002
-              
+
               # Specify a custom download directory
               python -m earthdata_download.src.cli --shortname GEDI02_B --download-dir /path/to/download
-              
+
               # Load an existing payload file
               python -m earthdata_download.src.cli --payload-file ./cache/GEDI02_B_payload.pickle
-              
+
               # Set number of concurrent downloads
               python -m earthdata_download.src.cli --shortname GEDI02_B --max-workers 8
-              
+
               # View download statistics
               python -m earthdata_download.src.cli --stats --download-dir /path/to/download
-              
+
               # Retry failed downloads
               python -m earthdata_download.src.cli --retry --payload-file ./cache/GEDI02_B_payload.pickle
         """

@@ -2,11 +2,11 @@
 Utility functions for the EarthData Download Tool.
 """
 
+import json
 import os
 import pickle
-import json
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from earthdata_download.src.logger import default_logger as logger
 

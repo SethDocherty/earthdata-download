@@ -7,11 +7,9 @@ Handles downloading files from NASA EarthData.
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Union
 
-import earthaccess
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
