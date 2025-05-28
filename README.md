@@ -22,16 +22,10 @@ It's designed to handle large datasets with efficient caching, parallel download
 
 ## Installation
 
-### Using pip
-
-```bash
-pip install earthdata-download
-```
-
 ### From source
 
 ```bash
-git clone https://github.com/yourusername/earthdata-download.git
+git clone https://github.com/sethdocherty/earthdata-download.git
 cd earthdata-download
 pip install -e .
 ```
@@ -49,6 +43,7 @@ poetry install
 Create a `.netrc` file in your home directory with your EarthData credentials:
 
 **Linux/macOS:**
+
 ```bash
 echo "machine urs.earthdata.nasa.gov login YOUR_USERNAME password YOUR_PASSWORD" >> ~/.netrc
 chmod 600 ~/.netrc
@@ -56,8 +51,11 @@ chmod 600 ~/.netrc
 
 **Windows:**
 Create a file named `_netrc` in your user directory (e.g., `C:\Users\YourUsername\_netrc`) with the following content:
-```
-machine urs.earthdata.nasa.gov login YOUR_USERNAME password YOUR_PASSWORD
+
+```text
+machine urs.earthdata.nasa.gov
+login YOUR_USERNAME
+password YOUR_PASSWORD
 ```
 
 ## Basic Usage
@@ -88,7 +86,7 @@ python -m earthdata_download.src.cli --retry --payload-file ./cache/GEDI02_B_pay
 | `--version` | Collection version | - | `--version 002` |
 | `--download-dir` | Directory to save downloaded files | `./data` | `--download-dir /path/to/download` |
 | `--cache-dir` | Directory to cache query results | `./cache` | `--cache-dir /path/to/cache` |
-| `--payload-file` | Path to saved collection payload file | - | `--payload-file ./cache/GEDI02_B_payload.pickle` |
+| `--payload-file`[^1] | Path to saved collection payload file | - | `--payload-file ./cache/GEDI02_B_payload.pickle` |
 | `--log-file` | Path to log file | - | `--log-file ./earthdata.log` |
 | `--log-level` | Logging level | `INFO` | `--log-level DEBUG` |
 | `--max-workers` | Maximum number of concurrent downloads | `4` | `--max-workers 8` |
@@ -98,21 +96,26 @@ python -m earthdata_download.src.cli --retry --payload-file ./cache/GEDI02_B_pay
 | `--temporal` | Temporal range in format 'YYYY-MM-DD,YYYY-MM-DD' | - | `--temporal 2021-01-01,2021-12-31` |
 | `--limit` | Maximum number of granules to query | `2000` | `--limit 500` |
 
+[^1]: The **payload** pickle file contains the download links for the granules in the collection and is time-stamped to avoid conflicts with future runs. It is created during the initial query of the collection and can be reused for subsequent downloads.
+
 ## Example Workflows
 
 ### Basic workflow
 
 1. **Search and download data from a collection:**
+
    ```bash
    python -m earthdata_download.src.cli --shortname GEDI02_B --version 002
    ```
 
 2. **Check download status:**
+
    ```bash
    python -m earthdata_download.src.cli --stats --download-dir ./data
    ```
 
 3. **Retry any failed downloads:**
+
    ```bash
    python -m earthdata_download.src.cli --retry --payload-file ./cache/GEDI02_B_payload.pickle
    ```
@@ -120,16 +123,19 @@ python -m earthdata_download.src.cli --retry --payload-file ./cache/GEDI02_B_pay
 ### Advanced usage
 
 **Download data for a specific time range:**
+
 ```bash
 python -m earthdata_download.src.cli --shortname GEDI02_B --version 002 --temporal 2021-01-01,2021-06-30
 ```
 
 **Speed up downloads with more parallel workers:**
+
 ```bash
 python -m earthdata_download.src.cli --shortname GEDI02_B --version 002 --max-workers 8
 ```
 
 **Use a custom location for downloads and cache:**
+
 ```bash
 python -m earthdata_download.src.cli --shortname GEDI02_B --version 002 --download-dir /mnt/data --cache-dir /mnt/cache
 ```
@@ -143,11 +149,19 @@ python -m earthdata_download.src.cli --shortname GEDI02_B --version 002 --downlo
 - **OS Agnostic**: Uses pathlib for cross-platform compatibility
 - **Progress Tracking**: Shows download progress and statistics
 
+When you first run the tool with a new collection, it will take some time to query the entire collection of granules. Two pickle files are created during this process:
+
+- A **granule search results file** that contains metadata about the granules.
+- A **payload file** that contains just the download links for each granule.
+
+This allows the tool to quickly access download links without needing to re-query the entire collection in future runs.
+
 ## Troubleshooting
 
 - **Authentication Errors**: Ensure your .netrc file exists and has the correct format
 - **Permission Issues**: On Unix-like systems, ensure your .netrc has 600 permissions
 - **Download Failures**: Use the --retry flag to attempt to download failed granules
+   > Remember to pass in the correct `--payload-file` for retries
 
 ## License
 
