@@ -20,6 +20,9 @@ package-mode = false
 ruff  = "^0.11.10"
 black = "^25.1.0"
 
+[tool.ruff]
+line-length = 130
+
 [build-system]
 requires = [
     "poetry-core>=2.0.0,<3.0.0",
