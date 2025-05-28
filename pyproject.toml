@@ -1,0 +1,27 @@
+[project]
+name = "earthdata-download"
+version = "0.1.0"
+description = ""
+authors = [
+    { name = "SethDocherty", email = "sddocherty@gmail.com" },
+]
+readme = "README.md"
+requires-python = ">=3.12, <4.0"
+dependencies = [
+    "earthaccess (>=0.14.0,<0.15.0)",
+    "jupyterlab (>=4.4.2,<5.0.0)",
+    "ipywidgets (>=8.1.7,<9.0.0)",
+]
+
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.group.dev.dependencies]
+ruff  = "^0.11.10"
+black = "^25.1.0"
+
+[build-system]
+requires = [
+    "poetry-core>=2.0.0,<3.0.0",
+]
+build-backend = "poetry.core.masonry.api"
