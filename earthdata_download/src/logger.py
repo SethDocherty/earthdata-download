@@ -45,6 +45,10 @@ class EarthDataLogger:
         """
         self.logger = logging.getLogger(name)
 
+        # Clear existing handlers to prevent duplicate logging
+        if self.logger.hasHandlers():
+            self.logger.handlers.clear()
+
         # Convert string log level to numeric if needed
         if isinstance(log_level, str):
             log_level = getattr(logging, log_level.upper(), logging.INFO)
