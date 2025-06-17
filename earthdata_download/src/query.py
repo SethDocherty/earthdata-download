@@ -382,3 +382,33 @@ class EarthDataQuery:
         except Exception as e:
             logger.exception(f"Error loading collection payload: {str(e)}")
             return {}
+
+    def load_granules_payload(
+        self, file_path: Union[str, Path]
+    ) -> Dict[str, List[Dict]]:
+        """
+        Load a granules payload from disk.
+
+        Args:
+            file_path: Path to the pickle file
+
+        Returns:
+            Dictionary with collection shortname as key and list of granule results as value
+        """
+        file_path = Path(file_path).absolute()
+
+        if not file_path.exists():
+            logger.error(f"Granules payload file not found: {file_path.as_posix()}")
+            return {}
+
+        try:
+            logger.info(f"Loading granules payload from {file_path.as_posix()}")
+
+            with open(file_path, "rb") as f:
+                granules_payload = pickle.load(f)
+
+            return granules_payload
+
+        except Exception as e:
+            logger.exception(f"Error loading granules payload: {str(e)}")
+            return {}
