@@ -228,14 +228,16 @@ def retry_failed_downloads(payload_file: str, download_dir: str, max_workers: in
 
 def main():
     """Main entry point for the CLI."""
+    global logger  # Declare logger as global
+
     parser = create_parser()
     args = parser.parse_args()
 
-    # Configure logger
-    logger = EarthDataLogger(
-        log_level=args.log_level,
-        log_file=args.log_file,
+    # At the start of your application
+    logger = get_logger(
+        reconfigure=True, log_level=args.log_level, log_file=args.log_file
     )
+    logger.info("Application starting...")
 
     # Show stats if requested
     if args.stats:
