@@ -187,5 +187,30 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(log_data)
 
 
-# Create a default logger instance
-default_logger = EarthDataLogger()
+# # Create a default logger instance
+# default_logger = EarthDataLogger()
+
+# Module-level variable to hold the single logger instance
+_logger_instance: Optional[EarthDataLogger] = None
+
+
+def get_logger(reconfigure: bool = False, **kwargs) -> "EarthDataLogger":
+    """
+    Initializes and returns a singleton EarthDataLogger instance.
+
+    The first time this is called, it will create and configure the logger
+    using the provided keyword arguments. Subsequent calls will return the
+    already-configured instance, unless `reconfigure` is True.
+
+    Args:
+        reconfigure: If True, allows re-configuring the logger with new kwargs.
+        **kwargs: Configuration options for the EarthDataLogger.
+                  See EarthDataLogger.__init__ for details.
+
+    Returns:
+        The configured EarthDataLogger instance.
+    """
+    global _logger_instance
+    if _logger_instance is None or reconfigure:
+        _logger_instance = EarthDataLogger(**kwargs)
+    return _logger_instance
