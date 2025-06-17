@@ -365,14 +365,14 @@ class EarthDataQuery:
         Returns:
             Collection payload dictionary
         """
-        file_path = Path(file_path)
+        file_path = Path(file_path).absolute()
 
         if not file_path.exists():
-            logger.error(f"Payload file not found: {file_path}")
+            logger.error(f"Payload file not found: {file_path.as_posix()}")
             return {}
 
         try:
-            logger.info(f"Loading collection payload from {file_path}")
+            logger.info(f"Loading collection payload from {file_path.as_posix()}")
 
             with open(file_path, "rb") as f:
                 payload = pickle.load(f)
