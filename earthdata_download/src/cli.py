@@ -140,7 +140,7 @@ def show_download_stats(download_dir: str):
     download_dir = Path(download_dir)
 
     if not download_dir.exists():
-        default_logger.error(f"Download directory not found: {download_dir}")
+        logger.error(f"Download directory not found: {download_dir}")
         return
 
     # Create auth and downloader objects
@@ -178,27 +178,25 @@ def parse_temporal(temporal_str: str) -> Dict:
             "end_date": end_date,
         }
     except ValueError:
-        default_logger.error(
-            "Invalid temporal range format. Expected 'YYYY-MM-DD,YYYY-MM-DD'"
-        )
+        logger.error("Invalid temporal range format. Expected 'YYYY-MM-DD,YYYY-MM-DD'")
         return None
 
 
 def retry_failed_downloads(payload_file: str, download_dir: str, max_workers: int):
     """Retry failed downloads."""
     if not payload_file:
-        default_logger.error("Payload file is required for retry operation")
+        logger.error("Payload file is required for retry operation")
         return
 
     payload_path = Path(payload_file)
     if not payload_path.exists():
-        default_logger.error(f"Payload file not found: {payload_path}")
+        logger.error(f"Payload file not found: {payload_path}")
         return
 
     # Create objects
     auth = EarthDataAuth()
     if not auth.authenticate():
-        default_logger.error("Authentication failed")
+        logger.error("Authentication failed")
         return
 
     # Load payload
@@ -206,7 +204,7 @@ def retry_failed_downloads(payload_file: str, download_dir: str, max_workers: in
     payload = query.load_collection_payload(payload_path)
 
     if not payload:
-        default_logger.error("Failed to load payload or payload is empty")
+        logger.error("Failed to load payload or payload is empty")
         return
 
     # Create downloader and retry failed granules
