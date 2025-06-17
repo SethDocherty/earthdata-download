@@ -12,7 +12,9 @@ from typing import Dict, List, Optional, Union
 import earthaccess
 
 from earthdata_download.src.auth import EarthDataAuth
-from earthdata_download.src.logger import default_logger as logger
+from earthdata_download.src.logger import get_logger
+
+logger = get_logger()
 
 
 class EarthDataQuery:

@@ -16,8 +16,11 @@ from earthdata_download.src.auth import (
     check_netrc_permissions,
 )
 from earthdata_download.src.download import EarthDataDownloader
-from earthdata_download.src.logger import EarthDataLogger, default_logger
+from earthdata_download.src.logger import get_logger
 from earthdata_download.src.query import EarthDataQuery
+
+# Global logger variable - will be initialized in main()
+logger = None
 
 
 def create_parser() -> argparse.ArgumentParser:

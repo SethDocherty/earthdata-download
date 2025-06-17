@@ -15,7 +15,9 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from earthdata_download.src.auth import EarthDataAuth
-from earthdata_download.src.logger import default_logger as logger
+from earthdata_download.src.logger import get_logger
+
+logger = get_logger()
 
 
 class EarthDataDownloader:
