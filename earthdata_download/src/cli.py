@@ -80,6 +80,11 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--granule-payload-file",
+        help="Path to saved granules payload file (for building collection payload)",
+    )
+
+    parser.add_argument(
         "--log-file",
         help="Path to log file",
     )
@@ -283,12 +288,27 @@ def main():
     # Get collection payload
     collection_payload = {}
 
-    if args.payload_file:
+    if args.granule_payload_file:
+        logger.info(f"Loading granules from {args.payload_file}")
+        granules_payload = query.load_granules_payload(args.granule_payload_file)
+
+        if not granules_payload:
+            logger.error("Failed to load granules payload")
+            sys.exit(1)
+
+        # rebuild collection payload from granules
+        collection_payload = query.build_collection_payload(granules_payload)
+        if not collection_payload:
+            logger.error("Failed to build collection payload from granules")
+            sys.exit(1)
+
+        # Save collection payload for future use
+        payload_file = query.save_collection_payload(collection_payload)
+
+    elif args.payload_file:
         # Load existing payload file
         logger.info(f"Loading collection payload from {args.payload_file}")
         collection_payload = query.load_collection_payload(args.payload_file)
-        collection_payload_tmp = query.build_collection_payload(collection_payload)
-        payload_file = query.save_collection_payload(collection_payload_tmp)
         if not collection_payload:
             logger.error("Failed to load collection payload")
             sys.exit(1)
