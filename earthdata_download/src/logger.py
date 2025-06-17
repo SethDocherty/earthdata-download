@@ -65,8 +65,8 @@ class EarthDataLogger:
 
         # Add file handler if specified
         if log_file:
-            log_path = Path(log_file)
-            if log_path.parent != Path("."):
+            log_path = Path(log_file).absolute()
+            if log_path.parent != Path():
                 log_path.parent.mkdir(parents=True, exist_ok=True)
 
             file_handler = RotatingFileHandler(
