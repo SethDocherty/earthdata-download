@@ -121,6 +121,18 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--check-missing",
+        help="Check for missing granules in download directory",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--download-missing",
+        help="Download missing granules after checking (requires --check-missing)",
+        action="store_true",
+    )
+
+    parser.add_argument(
         "--temporal",
         help="Temporal range in format 'YYYY-MM-DD,YYYY-MM-DD'",
     )
@@ -135,9 +147,9 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def show_download_stats(download_dir: str):
+def show_download_stats(download_dir: Path):
     """Show download statistics."""
-    download_dir = Path(download_dir)
+    download_dir = Path(download_dir).absolute()
 
     if not download_dir.exists():
         logger.error(f"Download directory not found: {download_dir}")
@@ -180,6 +192,60 @@ def parse_temporal(temporal_str: str) -> Dict:
     except ValueError:
         logger.error("Invalid temporal range format. Expected 'YYYY-MM-DD,YYYY-MM-DD'")
         return None
+
+
+def check_missing_granules(
+    payload_file: str, download_dir: str, download_missing: bool = False
+):
+    """Check for missing granules and optionally download them."""
+    if not payload_file:
+        logger.error("Payload file is required for checking missing granules")
+        return
+
+    payload_path = Path(payload_file)
+    if not payload_path.exists():
+        logger.error(f"Payload file not found: {payload_path}")
+        return
+
+    # Create objects
+    auth = EarthDataAuth()
+    if not auth.authenticate():
+        logger.error("Authentication failed")
+        return
+
+    # Load payload
+    query = EarthDataQuery(auth)
+    payload = query.load_collection_payload(payload_path)
+
+    if not payload:
+        logger.error("Failed to load payload or payload is empty")
+        return
+
+    # Create downloader and check missing granules
+    downloader = EarthDataDownloader(auth, download_dir=download_dir)
+
+    missing_stats = downloader.check_missing_granules(
+        payload, download_missing=download_missing
+    )
+
+    # Print missing granules stats
+    print("\nMissing Granules Check")
+    print("=====================")
+    print(f"Total granules in payload: {missing_stats['total']}")
+    print(f"Missing granules: {missing_stats['missing']}")
+
+    if download_missing:
+        print(f"Downloaded: {missing_stats['downloaded']}")
+        print(f"Failed: {missing_stats['failed']}")
+
+    print("=====================\n")
+
+    if missing_stats["missing"] > 0 and not download_missing:
+        print(f"Found {missing_stats['missing']} missing granules.")
+        print("You can download them using the --download-missing flag:")
+        print(
+            f"python -m earthdata_download.src.cli --check-missing --download-missing --payload-file {payload_file}"
+        )
 
 
 def retry_failed_downloads(payload_file: str, download_dir: str, max_workers: int):
@@ -239,7 +305,16 @@ def main():
 
     # Show stats if requested
     if args.stats:
-        show_download_stats(args.download_dir)
+        # Create download directory path object
+        download_dir = Path(args.download_dir).absolute()
+        show_download_stats(download_dir)
+        return
+
+    # Check for missing granules if requested
+    if args.check_missing:
+        check_missing_granules(
+            args.payload_file, args.download_dir, args.download_missing
+        )
         return
 
     # Retry failed downloads if requested

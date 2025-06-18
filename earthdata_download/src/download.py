@@ -408,6 +408,120 @@ class EarthDataDownloader:
             "total_download_size_tb": total_size / 1024 / 1024 / 1024 / 1024,
         }
 
+    def check_missing_granules(
+        self, collection_payload: Dict, download_missing: bool = False
+    ) -> Dict:
+        """
+        Check for missing granules in the download directory and optionally download them.
+
+        Args:
+            collection_payload: Collection payload dictionary
+            download_missing: If True, download the missing granules after identifying them
+
+        Returns:
+            Dictionary with missing granule statistics
+        """
+        if not collection_payload:
+            logger.warning("Empty collection payload, nothing to check")
+            return {"total": 0, "missing": 0, "downloaded": 0, "failed": 0}
+
+        collection_name = list(collection_payload.keys())[0]
+        granules = collection_payload[collection_name]
+
+        logger.info(f"Checking for missing granules in collection {collection_name}")
+
+        missing_granules = []
+
+        for granule_name, urls in granules.items():
+            granule_dir = self.download_dir / granule_name
+
+            # Check if granule directory is missing
+            if not granule_dir.exists():
+                missing_granules.append(granule_name)
+                logger.debug(f"Missing granule directory: {granule_name}")
+                continue
+
+            # Check if directory is empty
+            files_in_dir = list(granule_dir.iterdir())
+            if not files_in_dir:
+                missing_granules.append(granule_name)
+                logger.debug(f"Empty granule directory: {granule_name}")
+                continue
+
+            # Check if all expected files have been downloaded
+            expected_files = set()
+            for url in urls:
+                filename = url.split("/")[-1]
+                expected_files.add(filename)
+
+            actual_files = set()
+            for file_path in files_in_dir:
+                if file_path.is_file() and file_path.stat().st_size > 0:
+                    actual_files.add(file_path.name)
+
+            # If not all expected files are present, consider it missing
+            if not expected_files.issubset(actual_files):
+                missing_granules.append(granule_name)
+                missing_files = expected_files - actual_files
+                logger.debug(
+                    f"Incomplete granule {granule_name}, missing files: {missing_files}"
+                )
+
+        # Save missing granules to JSON file
+        missing_granules_file = self.download_dir / "missing_granules.json"
+        try:
+            with open(missing_granules_file, "w") as f:
+                json.dump(missing_granules, f, indent=2)
+            logger.info(
+                f"Saved {len(missing_granules)} missing granules to {missing_granules_file}"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to save missing granules file: {str(e)}")
+
+        # Remove missing granules from completed state so they can be re-downloaded
+        if missing_granules:
+            removed_count = 0
+            for granule_name in missing_granules:
+                if granule_name in self.completed_granules:
+                    self.completed_granules.remove(granule_name)
+                    removed_count += 1
+
+            if removed_count > 0:
+                logger.info(f"Removed {removed_count} granules from completed state")
+                self._save_state()
+
+        # Download missing granules if requested
+        downloaded_count = 0
+        failed_count = 0
+
+        if download_missing and missing_granules:
+            logger.info(
+                f"Starting download of {len(missing_granules)} missing granules"
+            )
+            start_time = time.time()
+
+            for granule_name in missing_granules:
+                if granule_name in granules:
+                    urls = granules[granule_name]
+                    success = self.download_granule(granule_name, urls)
+                    if success:
+                        downloaded_count += 1
+                    else:
+                        failed_count += 1
+
+            elapsed_time = time.time() - start_time
+            logger.info(
+                f"Missing granules download complete: {downloaded_count}/{len(missing_granules)} "
+                f"succeeded in {elapsed_time:.2f} seconds"
+            )
+
+        return {
+            "total": len(granules),
+            "missing": len(missing_granules),
+            "downloaded": downloaded_count,
+            "failed": failed_count,
+        }
+
     def retry_failed_granules(self, collection_payload: Dict) -> Dict:
         """
         Retry downloading failed granules.
