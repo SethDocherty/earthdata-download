@@ -195,7 +195,10 @@ def parse_temporal(temporal_str: str) -> Dict:
 
 
 def check_missing_granules(
-    payload_file: str, download_dir: str, download_missing: bool = False
+    payload_file: str,
+    download_dir: str,
+    download_missing: bool = False,
+    max_workers: int = 4,
 ):
     """Check for missing granules and optionally download them."""
     if not payload_file:
@@ -222,7 +225,9 @@ def check_missing_granules(
         return
 
     # Create downloader and check missing granules
-    downloader = EarthDataDownloader(auth, download_dir=download_dir)
+    downloader = EarthDataDownloader(
+        auth, download_dir=download_dir, max_workers=max_workers
+    )
 
     missing_stats = downloader.check_missing_granules(
         payload, download_missing=download_missing
@@ -313,7 +318,10 @@ def main():
     # Check for missing granules if requested
     if args.check_missing:
         check_missing_granules(
-            args.payload_file, args.download_dir, args.download_missing
+            args.payload_file,
+            args.download_dir,
+            args.download_missing,
+            args.max_workers,
         )
         return
 
