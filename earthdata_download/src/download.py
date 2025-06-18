@@ -156,7 +156,7 @@ class EarthDataDownloader:
 
         # Extract filename from URL
         filename = url.split("/")[-1]
-        filepath = target_dir / filename
+        filepath = Path(target_dir / filename).absolute()
 
         # Skip if file already exists and has content
         if filepath.exists() and filepath.stat().st_size > 0:
@@ -169,7 +169,7 @@ class EarthDataDownloader:
                 return False, "Authentication failed"
 
         try:
-            logger.info(f"Downloading {url} to {filepath}")
+            logger.debug(f"Downloading {url} to {filepath.as_posix()}")
             start_time = time.time()
 
             # Stream the download to handle large files
@@ -183,7 +183,7 @@ class EarthDataDownloader:
             elapsed_time = time.time() - start_time
             file_size = filepath.stat().st_size
 
-            logger.info(
+            logger.debug(
                 f"Download complete: {filepath} ({file_size / 1024 / 1024:.2f} MB in {elapsed_time:.2f} seconds)"
             )
 
@@ -223,10 +223,10 @@ class EarthDataDownloader:
             return True
 
         # Create directory for granule using the full granule name
-        granule_dir = self.download_dir / granule_name
+        granule_dir = Path(self.download_dir / granule_name).absolute()
         granule_dir.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Downloading granule {granule_name} to {granule_dir}")
+        logger.debug(f"Downloading granule {granule_name} to {granule_dir.as_posix()}")
         start_time = time.time()
 
         # Download each URL for the granule
