@@ -509,11 +509,12 @@ class EarthDataDownloader:
                     )
                     self._save_state()
 
-            # Download missing granules if requested
-            downloaded_count = 0
-            failed_count = 0
+        # Download missing granules if requested
+        downloaded_count = 0
+        failed_count = 0
 
         if download_missing and missing_granules:
+
             logger.info(
                 f"Starting download of {len(missing_granules)} missing granules"
             )
