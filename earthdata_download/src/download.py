@@ -260,6 +260,82 @@ class EarthDataDownloader:
 
         return success
 
+    def _download_granules_parallel(
+        self, granules_to_download: Dict[str, List[str]]
+    ) -> Dict:
+        """
+        Download granules in parallel using ThreadPoolExecutor.
+
+        Args:
+            granules_to_download: Dictionary of {granule_name: [urls]} to download
+
+        Returns:
+            Dictionary with download statistics
+        """
+        if not granules_to_download:
+            logger.info(f"No granules to download")
+            return {"total": 0, "succeeded": 0, "failed": 0, "elapsed_time": 0}
+
+        # Ensure authentication
+        if not self.auth.is_authenticated():
+            if not self.auth.authenticate():
+                logger.error("Authentication failed, cannot download granules")
+                return {
+                    "total": len(granules_to_download),
+                    "succeeded": 0,
+                    "failed": len(granules_to_download),
+                    "elapsed_time": 0,
+                    "error": "Authentication failed",
+                }
+
+        start_time = time.time()
+        succeeded_count = 0
+        failed_count = 0
+
+        # Download granules in parallel
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Submit all tasks
+            future_to_granule = {
+                executor.submit(self.download_granule, name, urls): name
+                for name, urls in granules_to_download.items()
+            }
+
+            # Process completed tasks
+            for future in as_completed(future_to_granule):
+                granule_name = future_to_granule[future]
+                try:
+                    success = future.result()
+                    if success:
+                        succeeded_count += 1
+                    else:
+                        failed_count += 1
+                except Exception as e:
+                    logger.exception(
+                        f"Error during download of granule {granule_name}: {str(e)}"
+                    )
+                    failed_count += 1
+                    self.errored_granules[granule_name] = str(e)
+
+                # Update progress
+                total_processed = succeeded_count + failed_count
+                logger.info(
+                    f"Progress: {total_processed}/{len(granules_to_download)} "
+                    f"granules processed ({succeeded_count} succeeded, {failed_count} failed)"
+                )
+
+        elapsed_time = time.time() - start_time
+        logger.info(
+            f"Parallel downloads complete: {succeeded_count}/{len(granules_to_download)} "
+            f"granules succeeded in {elapsed_time:.2f} seconds"
+        )
+
+        return {
+            "total": len(granules_to_download),
+            "succeeded": succeeded_count,
+            "failed": failed_count,
+            "elapsed_time": elapsed_time,
+        }
+
     def download_collection(self, collection_payload: Dict) -> Dict:
         """
         Download all granules in a collection payload.
@@ -296,7 +372,6 @@ class EarthDataDownloader:
 
         start_time = time.time()
         completed_count = 0
-        failed_count = 0
 
         # Create a list of granules that haven't been completed yet
         remaining_granules = {
@@ -320,35 +395,7 @@ class EarthDataDownloader:
             }
 
         # Download granules in parallel
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            # Submit all tasks
-            future_to_granule = {
-                executor.submit(self.download_granule, name, urls): name
-                for name, urls in remaining_granules.items()
-            }
-
-            # Process completed tasks
-            for future in as_completed(future_to_granule):
-                granule_name = future_to_granule[future]
-                try:
-                    success = future.result()
-                    if success:
-                        completed_count += 1
-                    else:
-                        failed_count += 1
-                except Exception as e:
-                    logger.exception(
-                        f"Error downloading granule {granule_name}: {str(e)}"
-                    )
-                    failed_count += 1
-                    self.errored_granules[granule_name] = str(e)
-
-                # Update status
-                total_count = completed_count + failed_count
-                logger.info(
-                    f"Progress: {total_count}/{len(remaining_granules)} granules processed "
-                    f"({completed_count} completed, {failed_count} failed)"
-                )
+        _download_stats = self._download_granules_parallel(remaining_granules)
 
         # Calculate statistics
         elapsed_time = time.time() - start_time
@@ -520,14 +567,14 @@ class EarthDataDownloader:
             )
             start_time = time.time()
 
-            for granule_name in missing_granules:
-                if granule_name in granules:
-                    urls = granules[granule_name]
-                    success = self.download_granule(granule_name, urls)
-                    if success:
-                        downloaded_count += 1
-                    else:
-                        failed_count += 1
+            # Create a dictionary of missing granules with their URLs
+            granules_to_download = {
+                name: granules[name] for name in missing_granules if name in granules
+            }
+
+            download_stats = self._download_granules_parallel(granules_to_download)
+            downloaded_count = download_stats["succeeded"]
+            failed_count = download_stats["failed"]
 
             elapsed_time = time.time() - start_time
             logger.info(
@@ -581,15 +628,9 @@ class EarthDataDownloader:
 
         # Download retried granules
         start_time = time.time()
-        succeeded = 0
-        failed = 0
-
-        for name, urls in retry_granules.items():
-            success = self.download_granule(name, urls)
-            if success:
-                succeeded += 1
-            else:
-                failed += 1
+        download_stats = self._download_granules_parallel(retry_granules)
+        succeeded = download_stats["succeeded"]
+        failed = download_stats["failed"]
 
         elapsed_time = time.time() - start_time
 
