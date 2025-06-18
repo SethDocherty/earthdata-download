@@ -432,67 +432,86 @@ class EarthDataDownloader:
 
         missing_granules = []
 
-        for granule_name, urls in granules.items():
-            granule_dir = self.download_dir / granule_name
-
-            # Check if granule directory is missing
-            if not granule_dir.exists():
-                missing_granules.append(granule_name)
-                logger.debug(f"Missing granule directory: {granule_name}")
-                continue
-
-            # Check if directory is empty
-            files_in_dir = list(granule_dir.iterdir())
-            if not files_in_dir:
-                missing_granules.append(granule_name)
-                logger.debug(f"Empty granule directory: {granule_name}")
-                continue
-
-            # Check if all expected files have been downloaded
-            expected_files = set()
-            for url in urls:
-                filename = url.split("/")[-1]
-                expected_files.add(filename)
-
-            actual_files = set()
-            for file_path in files_in_dir:
-                if file_path.is_file() and file_path.stat().st_size > 0:
-                    actual_files.add(file_path.name)
-
-            # If not all expected files are present, consider it missing
-            if not expected_files.issubset(actual_files):
-                missing_granules.append(granule_name)
-                missing_files = expected_files - actual_files
-                logger.debug(
-                    f"Incomplete granule {granule_name}, missing files: {missing_files}"
-                )
-
         # Save missing granules to JSON file
         missing_granules_file = self.download_dir / "missing_granules.json"
-        try:
-            with open(missing_granules_file, "w") as f:
-                json.dump(missing_granules, f, indent=2)
-            logger.info(
-                f"Saved {len(missing_granules)} missing granules to {missing_granules_file}"
+
+        if missing_granules_file.exists():
+            logger.warning(
+                f"Missing granules file already exists. If you would like to recreate it, please delete {missing_granules_file}"
             )
-        except Exception as e:
-            logger.warning(f"Failed to save missing granules file: {str(e)}")
+            logger.warning(
+                "Skipping missing granules check and using existing file to download missing granules"
+            )
+            try:
+                with Path.open(missing_granules_file, "r") as f:
+                    missing_granules = json.load(f)
+                logger.info(
+                    f"Loaded {len(missing_granules)} missing granules from {missing_granules_file}"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to load missing granules file: {str(e)}")
+                missing_granules = []
+        else:
+            for granule_name, urls in granules.items():
+                granule_dir = self.download_dir / granule_name
 
-        # Remove missing granules from completed state so they can be re-downloaded
-        if missing_granules:
-            removed_count = 0
-            for granule_name in missing_granules:
-                if granule_name in self.completed_granules:
-                    self.completed_granules.remove(granule_name)
-                    removed_count += 1
+                # Check if granule directory is missing
+                if not granule_dir.exists():
+                    missing_granules.append(granule_name)
+                    logger.debug(f"Missing granule directory: {granule_name}")
+                    continue
 
-            if removed_count > 0:
-                logger.info(f"Removed {removed_count} granules from completed state")
-                self._save_state()
+                # Check if directory is empty
+                files_in_dir = list(granule_dir.iterdir())
+                if not files_in_dir:
+                    missing_granules.append(granule_name)
+                    logger.debug(f"Empty granule directory: {granule_name}")
+                    continue
 
-        # Download missing granules if requested
-        downloaded_count = 0
-        failed_count = 0
+                # Check if all expected files have been downloaded
+                expected_files = set()
+                for url in urls:
+                    filename = url.split("/")[-1]
+                    expected_files.add(filename)
+
+                actual_files = set()
+                for file_path in files_in_dir:
+                    if file_path.is_file() and file_path.stat().st_size > 0:
+                        actual_files.add(file_path.name)
+
+                # If not all expected files are present, consider it missing
+                if not expected_files.issubset(actual_files):
+                    missing_granules.append(granule_name)
+                    missing_files = expected_files - actual_files
+                    logger.debug(
+                        f"Incomplete granule {granule_name}, missing files: {missing_files}"
+                    )
+            try:
+                with Path.open(missing_granules_file, "w") as f:
+                    json.dump(missing_granules, f, indent=2)
+                logger.info(
+                    f"Saved {len(missing_granules)} missing granules to {missing_granules_file}"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to save missing granules file: {str(e)}")
+
+            # Remove missing granules from completed state so they can be re-downloaded
+            if missing_granules:
+                removed_count = 0
+                for granule_name in missing_granules:
+                    if granule_name in self.completed_granules:
+                        self.completed_granules.remove(granule_name)
+                        removed_count += 1
+
+                if removed_count > 0:
+                    logger.info(
+                        f"Removed {removed_count} granules from completed state"
+                    )
+                    self._save_state()
+
+            # Download missing granules if requested
+            downloaded_count = 0
+            failed_count = 0
 
         if download_missing and missing_granules:
             logger.info(
